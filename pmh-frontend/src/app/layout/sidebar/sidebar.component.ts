@@ -30,6 +30,12 @@ export class SidebarComponent {
       route: '/group-categories',
       icon: 'lucide lucide-folder',
       permission: 'GROUP_CATEGORY_VIEW'
+    },
+    {
+      label: 'Lịch sử giao dịch',
+      route: '/transactions',
+      icon: 'lucide lucide-file-Spreadsheet',
+      permission: 'TRANSACTION_EXPORT'
     }
   ];
 }

@@ -1,0 +1,244 @@
+<div class="page-container">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <span class="crumb-home">Tham số</span>
+    <span class="crumb-separator">/</span>
+    <span class="crumb-current">Lịch sử giao dịch</span>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h2 class="page-title">Lịch sử giao dịch</h2>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="filter-card">
+    <form [formGroup]="filterForm" (ngSubmit)="onSearch()" class="filter-form">
+      <div class="filter-rows">
+        <div class="filter-grid-5">
+          <!-- Mã giao dịch -->
+          <div class="filter-group">
+            <label>Mã giao dịch</label>
+            <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+              <input
+                tuiInput
+                type="text"
+                formControlName="transactionCode"
+                placeholder="Nhập mã giao dịch"
+              />
+            </tui-textfield>
+          </div>
+
+          <!-- Số tài khoản -->
+          <div class="filter-group">
+            <label>Số tài khoản</label>
+            <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+              <input
+                tuiInput
+                type="text"
+                formControlName="accountNo"
+                placeholder="Nhập số tài khoản"
+              />
+            </tui-textfield>
+          </div>
+
+          <!-- Trạng thái giao dịch -->
+          <div class="filter-group">
+            <label>Trạng thái giao dịch</label>
+            <tui-textfield
+              tuiChevron
+              tuiTextfieldSize="m"
+              [tuiTextfieldCleaner]="true"
+              [stringify]="stringifyStatus"
+            >
+              <input
+                tuiSelect
+                formControlName="status"
+                placeholder="Tất cả"
+              />
+              <tui-data-list-wrapper
+                *tuiDropdown
+                new
+                [items]="statusSelectItems"
+              />
+            </tui-textfield>
+          </div>
+
+          <!-- Từ ngày -->
+          <div class="filter-group">
+            <label>Từ ngày</label>
+            <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+              <input
+                tuiInputDate
+                formControlName="fromDate"
+                placeholder="dd/mm/yyyy"
+              />
+              <tui-calendar *tuiDropdown />
+            </tui-textfield>
+          </div>
+
+          <!-- Đến ngày -->
+          <div class="filter-group">
+            <label>Đến ngày</label>
+            <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+              <input
+                tuiInputDate
+                formControlName="toDate"
+                placeholder="dd/mm/yyyy"
+              />
+              <tui-calendar *tuiDropdown />
+            </tui-textfield>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button
+          tuiButton
+          type="button"
+          appearance="flat"
+          size="m"
+          (click)="onReset()"
+        >
+          Xóa bộ lọc
+        </button>
+        <button
+          tuiButton
+          type="submit"
+          appearance="primary"
+          size="m"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Tìm kiếm
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Export Jobs Progress & Download Manager Panel -->
+  <div class="export-manager-card" *ngIf="exportJobs.length > 0">
+    <div class="export-manager-header" (click)="showExportPanel = !showExportPanel">
+      <div class="header-left">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D6B5E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+        <h4>Quản lý tiến trình Xuất & Tải file Excel</h4>
+        <span class="badge-total">{{ exportJobs.length }} yêu cầu</span>
+        <span class="badge-processing" *ngIf="activeJobsCount > 0">
+          Đang xử lý {{ activeJobsCount }} file...
+        </span>
+      </div>
+      <div class="header-right">
+        <button
+          tuiButton
+          type="button"
+          appearance="flat"
+          size="xs"
+          (click)="$event.stopPropagation(); loadMyExportJobs()"
+        >
+          Làm mới
+        </button>
+        <span class="toggle-text">{{ showExportPanel ? 'Thu gọn ▲' : 'Mở rộng ▼' }}</span>
+      </div>
+    </div>
+
+    <div class="export-jobs-list" *ngIf="showExportPanel">
+      <div class="export-job-item" *ngFor="let job of exportJobs | slice:0:5">
+        <div class="job-info">
+          <div class="job-title-row">
+            <span class="file-icon">📊</span>
+            <span class="job-name">Lich_su_giao_dich_{{ job.jobId | slice:0:8 }}.xlsx</span>
+            <span
+              class="job-status-pill"
+              [ngClass]="{
+                'pill-pending': job.status === 'PENDING',
+                'pill-processing': job.status === 'PROCESSING',
+                'pill-success': job.status === 'SUCCESS',
+                'pill-failed': job.status === 'FAILED'
+              }"
+            >
+              <ng-container [ngSwitch]="job.status">
+                <span *ngSwitchCase="'PENDING'">Đang chờ xử lý</span>
+                <span *ngSwitchCase="'PROCESSING'">Đang tạo file ({{ getDisplayProgress(job) }}%)</span>
+                <span *ngSwitchCase="'SUCCESS'">Hoàn thành (100%)</span>
+                <span *ngSwitchCase="'FAILED'">Thất bại</span>
+              </ng-container>
+            </span>
+            <span class="record-count" *ngIf="job.totalRecords !== null && job.totalRecords !== undefined">
+              • {{ job.totalRecords | number }} bản ghi
+            </span>
+          </div>
+
+          <!-- Progress Bar chạy mượt 0 -> 99% và nhảy 100% khi hoàn tất -->
+          <div class="progress-bar-container" *ngIf="job.status === 'PENDING' || job.status === 'PROCESSING' || job.status === 'SUCCESS'">
+            <div
+              class="progress-bar-fill"
+              [class.fill-success]="job.status === 'SUCCESS'"
+              [style.width.%]="getDisplayProgress(job)"
+            ></div>
+          </div>
+
+          <div class="job-error" *ngIf="job.status === 'FAILED' && job.errorMessage">
+            Lỗi: {{ job.errorMessage }}
+          </div>
+        </div>
+
+        <div class="job-actions">
+          <a
+            *ngIf="job.status === 'SUCCESS' && !job.expired"
+            [href]="getDirectDownloadUrl(job.jobId)"
+            download
+            class="btn-download-excel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Tải xuống (.xlsx)
+          </a>
+          <span class="expired-label" *ngIf="job.expired">Đã hết hạn (24h)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="title-with-count">
+        <h3>Danh sách lịch sử giao dịch</h3>
+        <span class="count-badge">{{ totalElements | number }}</span>
+      </div>
+
+      <div class="card-actions">
+        <button
+          tuiButton
+          type="button"
+          appearance="outline"
+          size="s"
+          [disabled]="exportRequesting"
+          (click)="requestExportExcel()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          {{ exportRequesting ? 'Đang gửi yêu cầu...' : 'Xuất Excel' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="ag-theme-quartz ag-grid-wrapper">
+      <ag-grid-angular
+        style="width: 100%;"
+        [rowData]="transactions"
+        [columnDefs]="columnDefs"
+        [gridOptions]="gridOptions"
+        (gridReady)="onGridReady($event)"
+      />
+    </div>
+
+    <div class="pagination-bar" *ngIf="totalElements > 0">
+      <span class="record-info">
+        Hiển thị {{ startRecord | number }} - {{ endRecord | number }} trên tổng số {{ totalElements | number }} bản ghi
+      </span>
+      <tui-pagination
+        [length]="totalPages"
+        [index]="page"
+        (indexChange)="onPageChange($event)"
+      />
+    </div>
+  </div>
+</div>

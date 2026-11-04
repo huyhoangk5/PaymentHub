@@ -31,6 +31,13 @@ export const routes: Routes = [
         data: { permission: 'GROUP_CATEGORY_VIEW' }
       },
       {
+        path: 'transactions',
+        loadComponent: () =>
+          import('./pages/transaction-management/transaction-list/transaction-list.component').then(
+            (m) => m.TransactionListComponent
+          )
+      },
+      {
         path: '',
         redirectTo: 'components',
         pathMatch: 'full'

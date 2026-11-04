@@ -19,4 +19,7 @@ export enum PermissionCode {
 
   // Audit log permission
   AUDIT_VIEW = 'AUDIT_VIEW',
+
+  // Transaction permissions
+  TRANSACTION_EXPORT = 'TRANSACTION_EXPORT',
 }

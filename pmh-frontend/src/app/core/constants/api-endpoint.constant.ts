@@ -29,4 +29,11 @@ export const API = {
   AUDIT_LOGS: {
     GET: '/api/audit-logs',
   },
+  TRANSACTIONS: {
+    SEARCH: '/api/transactions/search',
+    EXPORT: '/api/transactions/export',
+    MY_JOBS: '/api/transactions/export/my-jobs',
+    JOB_DETAIL: (jobId: string) => `/api/transactions/export/${jobId}`,
+    DOWNLOAD: (jobId: string) => `/api/transactions/export/${jobId}/download`,
+  },
 } as const;

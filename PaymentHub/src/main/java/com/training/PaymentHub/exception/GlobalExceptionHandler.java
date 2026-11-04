@@ -1,4 +1,4 @@
-﻿package com.training.PaymentHub.exception;
+package com.training.PaymentHub.exception;
 
 import com.training.PaymentHub.model.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
@@ -36,19 +36,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ApiResponse<Object>> handleDisabled(DisabledException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(401, "TÃ i khoáº£n Ä‘Ã£ bá»‹ vÃ´ hiá»‡u hÃ³a"));
+                .body(ApiResponse.error(401, "Tài khoản đã bị vô hiệu hóa"));
     }
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ApiResponse<Object>> handleLocked(LockedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(401, "TÃ i khoáº£n Ä‘ang bá»‹ khÃ³a"));
+                .body(ApiResponse.error(401, "Tài khoản đang bị khóa"));
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Object>> handleAuthException(AuthenticationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(401, "XÃ¡c thá»±c tháº¥t báº¡i: " + ex.getMessage()));
+                .body(ApiResponse.error(401, "Xác thực thất bại: " + ex.getMessage()));
     }
 
     // --- Authorization Errors (403) ---
@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Object>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error(403, "Báº¡n khÃ´ng cÃ³ quyá»n thá»±c hiá»‡n hÃ nh Ä‘á»™ng nÃ y"));
+                .body(ApiResponse.error(403, "Bạn không có quyền thực hiện hành động này"));
     }
 
     // --- Validation Errors (400) ---
@@ -91,7 +91,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "Lá»—i há»‡ thá»‘ng: " + ex.getMessage()));
+                .body(ApiResponse.error(500, "Lỗi hệ thống: " + ex.getMessage()));
     }
 }
-
