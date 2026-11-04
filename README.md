@@ -1,12 +1,11 @@
 # PaymentHub (PMH-Project)
 
-Hệ thống quản lý tham số cấu hình thanh toán tập trung (Payment Hub), bao gồm hai phân hệ chính:
 1. **Tham số Cấu phần xử lý (Components Management)**
 2. **Tham số Danh mục theo nhóm (Group Categories Management)**
 
 ---
 
-## 🛠 Kiến trúc hệ thống
+## Kiến trúc hệ thống
 
 ```
 PMH-Project/
@@ -16,36 +15,15 @@ PMH-Project/
 
 ---
 
-## ⚙️ Yêu cầu môi trường
-- **Java**: JDK 17+
-- **Database**: Oracle Database 19c
-- **Node.js**: v18+ / v20+
-- **Angular CLI**: v21+
+# Những việc đã làm:
+- Viết các dạng API: 
+    + JPA: trong các repository.
+    + Native Query: ví dụ trong ComponentRepository.
+    + Procedure: Có thử viết trong DB và BE gọi nó ở method searchComponent() trong ComponentServiceImpl.
+    + Specification: dùng cho chức năng tìm kiếm bằng bộ lọc ở cả 2 phần Component và GroupCategory.
+- Viết các API phục vụ các chức năng có trong tài liệu RSD(lấy danh sách, tìm kiếm qua bộ lọc, thêm, sửa, xóa, lưu, gửi duyệt, duyệt, từ chối duyệt), có kiểm thử bằng Postman trước khi tích hợp vào giao diện người dùng, chưa có unit test.
+- Có thử viết xác thực và phân quyền với JWT để thực hiện đăng nhập.
 
----
-
-## 🚀 Hướng dẫn khởi chạy
-
-### 1. Khởi chạy Backend (PaymentHub)
-```bash
-cd PaymentHub
-# Cấu hình chuỗi kết nối Oracle trong src/main/resources/application.properties
-./mvnw spring-boot:run
-```
-Backend API sẽ chạy tại: `http://localhost:8080`
-
-### 2. Khởi chạy Frontend (pmh-frontend)
-```bash
-cd pmh-frontend
-npm install
-npm start
-# hoặc: npx ng serve --port 4200
-```
-Frontend Web App sẽ chạy tại: `http://localhost:4200`
-
----
-
-## 🔐 Tài khoản thử nghiệm
-- **Tài khoản**: `abcc@gmail.com`
-- **Mật khẩu**: `111111`
-
+- Xây dựng giao diện bằng Angular và Taiga UI:
+    + Các bảng dùng AG Grid.
+    + Taiga UI: các nút bấm, các ô input,...
