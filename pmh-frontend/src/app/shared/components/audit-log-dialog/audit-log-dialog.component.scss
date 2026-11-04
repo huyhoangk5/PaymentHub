@@ -1,0 +1,48 @@
+.audit-log-wrapper {
+  // Let Taiga control dialog width via styles.scss override.
+  // Just ensure content fills the dialog without overflowing.
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #999999;
+    gap: 12px;
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+
+  .ag-grid-wrapper {
+    width: 100%;
+    overflow: hidden;
+
+    ag-grid-angular {
+      display: block;
+      width: 100%;
+    }
+
+    --ag-header-background-color: #f8f9fa;
+    --ag-header-foreground-color: #555555;
+    --ag-font-size: 13px;
+    --ag-row-hover-color: #f4f8f7;
+    --ag-border-color: #e8e8e8;
+    --ag-row-height: 48px;
+    --ag-header-height: 42px;
+
+    .ag-row {
+      border-bottom: 4px solid #f4f6f8 !important;
+    }
+
+    .ag-row:last-child {
+      border-bottom: none !important;
+    }
+  }
+}

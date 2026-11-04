@@ -1,0 +1,26 @@
+<nav class="app-sidebar">
+  <div class="menu-section">
+    <div class="menu-header">DANH MỤC CẤU HÌNH</div>
+    <ul class="menu-list">
+      <ng-container *ngFor="let item of menuItems">
+        <li class="menu-item" [class.disabled]="item.disabled">
+          <a
+            *ngIf="item.route && !item.disabled; else disabledItem"
+            [routerLink]="item.route"
+            routerLinkActive="active"
+            class="menu-link"
+          >
+            <i [class]="item.icon" class="menu-icon"></i>
+            <span class="menu-label">{{ item.label }}</span>
+          </a>
+          <ng-template #disabledItem>
+            <span class="menu-link disabled">
+              <i [class]="item.icon" class="menu-icon"></i>
+              <span class="menu-label">{{ item.label }}</span>
+            </span>
+          </ng-template>
+        </li>
+      </ng-container>
+    </ul>
+  </div>
+</nav>

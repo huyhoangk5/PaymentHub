@@ -1,0 +1,93 @@
+KẾ HOẠCH LÀM TỪNG BƯỚC ĐỂ HOÀN THIỆN BACKEND
+Bước 1: Khởi tạo Project & Mapping Entities (Nền tảng)
+Import dự án Spring Boot vào IDE.
+Kiểm tra kết nối Oracle thành công qua file application.yml.
+Tạo các Class @Entity: PmhComponentsEntity, PmhGroupCategoryEntity, PmhAuditLogEntity mapping chuẩn xác với các cột bảng sẵn có trong Oracle DB.  
+Dựng DTOs request/response và Class ApiResponse<T> chung để chuẩn hoá dữ liệu trả về cho FE.
+Bước 2: Phát triển 
+DẠNG 1 - Spring Data JPA + Specification (Ưu tiên làm trước)
+Tạo JpaRepository kế thừa JpaRepository và JpaSpecificationExecutor.
+Viết Specification:Viết ComponentSpecification và GroupCategorySpecification để build điều kiện WHERE linh hoạt theo tham số truyền lên từ FE (dùng CriteriaBuilder, Predicate).  
+Viết CRUD & Workflow Service (JPA):Code logic Thêm/Sửa/Sao chép/Duyệt/Từ chối.  
+Viết logic chèn lịch sử vào bảng PMH_AUDIT_LOG mỗi khi có thao tác tác động.  
+Dựng Controller /api/v1/jpa/... và dùng Postman kiểm tra toàn bộ luồng.
+Bước 3: Phát triển 
+DẠNG 2 - Native Query + EntityManager
+Tạo class Repository dùng @PersistenceContext private EntityManager entityManager;.
+Viết Query Tìm kiếm: Sử dụng StringBuilder ghép chuỗi SQL thuần SELECT ... FROM PMH_COMPONENTS WHERE ... kèm các tham số động.
+Viết Query Thao tác: Dùng entityManager.createNativeQuery(...) cho các thao tác INSERT, UPDATE trạng thái STATUS và ghi Audit Log.  
+Dựng Controller /api/v1/native/... và test trên Postman.
+Bước 4: Phát triển 
+DẠNG 3 - Stored Procedure
+Sử dụng entityManager.createStoredProcedureQuery("PKG_NAME.PRC_NAME").
+Đăng ký tham số IN và OUT (đặc biệt là dạng OracleTypes.CURSOR hoặc SYS_REFCURSOR cho hàm tìm kiếm trả về danh sách).
+Map Cursor trả về từ Oracle thành danh sách DTOs.Dựng Controller /api/v1/procedure/... và test trên Postman.
+Bước 5: Viết Chức năng Xuất Excel & Tối ưu hoá
+Cài đặt thư viện Apache POI vào pom.xml.
+Viết ExcelUtil để convert danh sách DTO trả về từ Service ra dạng Byte Array Stream (phục vụ download file file .xlsx).  
+Rà soát lại Validation (bắt lỗi trùng mã, ngày hiệu lực quá khứ).  
+Test toàn bộ các API ở cả 3 cách trên Postman để đảm bảo tất cả đều hoạt động nhất quán, sẵn sàng ghép nối với FE.
+
+cấu trúc tổ chức file
+src/main/java/com/company/payment/
+├── config/                         # Cấu hình OpenAPI/Swagger, Cors, DB...
+│   └── SwaggerConfig.java
+├── constant/                       # Hằng số hệ thống, Enums
+│   ├── ApprovalStatusEnum.java     # STATUS: 1, 3, 4, 5, 7
+│   └── MessageConstant.java
+├── exception/                      # Quản lý lỗi tập trung
+│   ├── BusinessException.java
+│   └── GlobalExceptionHandler.java
+├── model/
+│   ├── dto/                        # Data Transfer Objects
+│   │   ├── request/
+│   │   │   ├── ComponentSearchReq.java
+│   │   │   ├── ComponentSaveReq.java
+│   │   │   ├── GroupCategorySearchReq.java
+│   │   │   ├── GroupCategorySaveReq.java
+│   │   │   └── ApprovalReq.java
+│   │   └── response/
+│   │       ├── ComponentResp.java
+│   │       ├── GroupCategoryResp.java
+│   │       ├── AuditLogResp.java
+│   │       └── ApiResponse.java    # Standard API Response wrapper
+│   └── entity/                     # JPA Entities
+│       ├── PmhComponentsEntity.java
+│       ├── PmhGroupCategoryEntity.java
+│       └── PmhAuditLogEntity.java
+├── repository/                     # Tầng kết nối Database
+│   ├── jpa/                        # DẠNG 1: JPA Repositories
+│   │   ├── PmhComponentsJpaRepository.java
+│   │   └── PmhGroupCategoryJpaRepository.java
+│   ├── specification/              # JPA Specifications cho Search dynamic
+│   │   ├── ComponentSpecification.java
+│   │   └── GroupCategorySpecification.java
+│   ├── nativequery/                # DẠNG 2: EntityManager Native Queries
+│   │   ├── ComponentNativeRepository.java
+│   │   └── GroupCategoryNativeRepository.java
+│   └── procedure/                  # DẠNG 3: Stored Procedure Calls
+│       ├── ComponentProcedureRepository.java
+│       └── GroupCategoryProcedureRepository.java
+├── service/                        # Interfaces & Implementations
+│   ├── ComponentService.java
+│   ├── GroupCategoryService.java
+│   └── impl/
+│       ├── jpa/                    # Implement Service bằng JPA
+│       │   ├── ComponentJpaServiceImpl.java
+│       │   └── GroupCategoryJpaServiceImpl.java
+│       ├── nativequery/            # Implement Service bằng Native Query
+│       │   ├── ComponentNativeServiceImpl.java
+│       │   └── GroupCategoryNativeServiceImpl.java
+│       └── procedure/              # Implement Service bằng Procedure
+│           ├── ComponentProcedureServiceImpl.java
+│           └── GroupCategoryProcedureServiceImpl.java
+└── controller/                     # Endpoints
+    ├── jpa/                        # /api/v1/jpa/...
+    │   ├── ComponentJpaController.java
+    │   └── GroupCategoryJpaController.java
+    ├── nativequery/                # /api/v1/native/...
+    │   ├── ComponentNativeController.java
+    │   └── GroupCategoryNativeController.java
+    └── procedure/                  # /api/v1/procedure/...
+        ├── ComponentProcedureController.java
+        └── GroupCategoryProcedureController.java

@@ -1,0 +1,277 @@
+<div class="page-container">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <span class="crumb-home">Tham số</span>
+    <span class="crumb-separator">/</span>
+    <span class="crumb-current">Tham số danh mục theo nhóm</span>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h2 class="page-title">Tham số danh mục theo nhóm</h2>
+    <button
+      *appHasPermission="'GROUP_CATEGORY_CREATE'"
+      tuiButton
+      type="button"
+      appearance="primary"
+      size="m"
+      (click)="openCreateModal()"
+    >
+      + Thêm mới
+    </button>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="filter-card">
+    <form [formGroup]="filterForm" (ngSubmit)="onSearch()" class="filter-form">
+      <div class="filter-rows">
+        <div class="filter-grid-4">
+          <!-- 1. Danh mục theo nhóm -->
+          <div class="filter-group">
+            <label>Danh mục theo nhóm</label>
+            <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+              <input
+                tuiInput
+                type="text"
+                formControlName="paramType"
+                placeholder="Nhập danh mục theo nhóm"
+              />
+            </tui-textfield>
+          </div>
+
+          <!-- 2. Giá trị thành phần -->
+          <div class="filter-group">
+            <label>Giá trị thành phần</label>
+            <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+              <input
+                tuiInput
+                type="text"
+                formControlName="paramValue"
+                placeholder="Nhập giá trị thành phần"
+              />
+            </tui-textfield>
+          </div>
+
+          <!-- 3. Tên thành phần -->
+          <div class="filter-group">
+            <label>Tên thành phần</label>
+            <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+              <input
+                tuiInput
+                type="text"
+                formControlName="paramName"
+                placeholder="Nhập tên thành phần"
+              />
+            </tui-textfield>
+          </div>
+
+          <!-- 4. Trạng thái tham số (Multi-select) -->
+          <div class="filter-group">
+            <label>Trạng thái tham số</label>
+            <tui-textfield
+              multi
+              tuiChevron
+              tuiTextfieldSize="m"
+              [tuiTextfieldCleaner]="true"
+              [stringify]="stringifyStatus"
+            >
+              <input
+                tuiInputChip
+                formControlName="statuses"
+                placeholder="Tất cả"
+              />
+              <tui-input-chip *tuiItem />
+              <tui-data-list *tuiDropdown>
+                <tui-opt-group tuiMultiSelectGroup label="Chọn tất cả">
+                  <button
+                    *ngFor="let item of statusSelectItems | tuiFilterByInput"
+                    tuiOption
+                    type="button"
+                    [value]="item"
+                  >
+                    {{ stringifyStatus(item) }}
+                  </button>
+                </tui-opt-group>
+              </tui-data-list>
+            </tui-textfield>
+          </div>
+        </div>
+
+        <div class="filter-grid-4 margin-top">
+          <!-- 5. Trạng thái hoạt động (Multi-select) -->
+          <div class="filter-group">
+            <label>Trạng thái hoạt động</label>
+            <tui-textfield
+              multi
+              tuiChevron
+              tuiTextfieldSize="m"
+              [tuiTextfieldCleaner]="true"
+              [stringify]="stringifyActive"
+            >
+              <input
+                tuiInputChip
+                formControlName="isActives"
+                placeholder="Tất cả"
+              />
+              <tui-input-chip *tuiItem />
+              <tui-data-list *tuiDropdown>
+                <tui-opt-group tuiMultiSelectGroup label="Chọn tất cả">
+                  <button
+                    *ngFor="let item of activeSelectItems | tuiFilterByInput"
+                    tuiOption
+                    type="button"
+                    [value]="item"
+                  >
+                    {{ stringifyActive(item) }}
+                  </button>
+                </tui-opt-group>
+              </tui-data-list>
+            </tui-textfield>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button
+          tuiButton
+          type="button"
+          appearance="flat"
+          size="m"
+          (click)="onResetFilter()"
+        >
+          Xóa bộ lọc
+        </button>
+        <button
+          tuiButton
+          type="submit"
+          appearance="primary"
+          size="m"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Tìm kiếm
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="title-with-count">
+        <h3>Danh sách danh mục theo nhóm</h3>
+        <span class="count-badge">{{ totalElements }}</span>
+        <span class="selected-badge" *ngIf="selectedRows.length > 0">
+          Đã chọn {{ selectedRows.length }} bản ghi
+        </span>
+      </div>
+
+      <div class="card-actions">
+        <!-- Bulk Actions Toolbar -->
+        <ng-container *ngIf="selectedRows.length > 0">
+          <button
+            *ngIf="canBulkDelete"
+            tuiButton
+            type="button"
+            appearance="outline-destructive"
+            size="s"
+            [disabled]="bulkLoading"
+            (click)="onBulkDelete()"
+          >
+            Xóa ({{ selectedRows.length }})
+          </button>
+
+          <ng-container *appHasPermission="'GROUP_CATEGORY_SEND'">
+            <button
+              *ngIf="canBulkSendApprove"
+              tuiButton
+              type="button"
+              appearance="primary"
+              size="s"
+              [disabled]="bulkLoading"
+              (click)="onBulkSendApprove()"
+            >
+              Gửi duyệt ({{ selectedRows.length }})
+            </button>
+          </ng-container>
+
+          <ng-container *appHasPermission="'GROUP_CATEGORY_CANCEL'">
+            <button
+              *ngIf="canBulkCancelApprove"
+              tuiButton
+              type="button"
+              appearance="outline-destructive"
+              size="s"
+              [disabled]="bulkLoading"
+              (click)="onBulkCancelApprove()"
+            >
+              Hủy phê duyệt ({{ selectedRows.length }})
+            </button>
+          </ng-container>
+
+          <ng-container *appHasPermission="'GROUP_CATEGORY_REJECT'">
+            <button
+              *ngIf="canBulkReject"
+              tuiButton
+              type="button"
+              appearance="primary-destructive"
+              size="s"
+              [disabled]="bulkLoading"
+              (click)="onBulkReject()"
+            >
+              Từ chối ({{ selectedRows.length }})
+            </button>
+          </ng-container>
+
+          <ng-container *appHasPermission="'GROUP_CATEGORY_APPROVE'">
+            <button
+              *ngIf="canBulkApprove"
+              tuiButton
+              type="button"
+              appearance="primary"
+              size="s"
+              [disabled]="bulkLoading"
+              (click)="onBulkApprove()"
+            >
+              Phê duyệt ({{ selectedRows.length }})
+            </button>
+          </ng-container>
+        </ng-container>
+
+        <button
+          tuiButton
+          type="button"
+          appearance="outline"
+          size="s"
+          (click)="exportExcel()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Xuất Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- AG Grid -->
+    <div class="ag-theme-quartz ag-grid-wrapper">
+      <ag-grid-angular
+        [rowData]="items"
+        [columnDefs]="columnDefs"
+        [gridOptions]="gridOptions"
+        (gridReady)="onGridReady($event)"
+        style="width: 100%;"
+      >
+      </ag-grid-angular>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar" *ngIf="totalPages > 1">
+      <div class="pagination-info">
+        Hiển thị {{ page * size + 1 }} - {{ (page + 1) * size > totalElements ? totalElements : (page + 1) * size }} trên tổng số {{ totalElements }} bản ghi
+      </div>
+      <tui-pagination
+        [length]="totalPages"
+        [index]="page"
+        (indexChange)="goToPage($event)"
+      ></tui-pagination>
+    </div>
+  </div>
+</div>

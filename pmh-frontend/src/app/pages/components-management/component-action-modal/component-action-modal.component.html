@@ -1,0 +1,248 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <div class="header-left">
+      <h3 class="modal-title">Xem chi tiết cấu phần xử lý</h3>
+      <app-status-badge [status]="item.status"></app-status-badge>
+    </div>
+  </div>
+
+  <div class="modal-body">
+    <div *ngIf="errorMessage" class="error-alert">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- Bảng Lịch sử thao tác (Nếu toggle mở) -->
+    <div *ngIf="showAuditLogs" class="audit-log-section">
+      <div class="audit-log-header">
+        <h4>Lịch sử thao tác</h4>
+        <button type="button" class="btn-close-audit" (click)="toggleAuditLogs()">✕</button>
+      </div>
+      <div *ngIf="auditLogLoading" class="loading-text">Đang tải lịch sử...</div>
+      <ng-container *ngIf="!auditLogLoading">
+        <div *ngIf="auditLogs.length === 0" class="empty-text">Chưa có lịch sử thao tác</div>
+        <div *ngIf="auditLogs.length > 0" class="ag-theme-quartz audit-ag-grid">
+          <ag-grid-angular
+            [rowData]="auditLogs"
+            [columnDefs]="auditLogColumnDefs"
+            [gridOptions]="auditLogGridOptions"
+            style="width: 100%;"
+          >
+          </ag-grid-angular>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Layout 2 cột Xem Chi Tiết -->
+    <div class="data-comparison-grid">
+      <!-- Cột trái: Dữ liệu cũ -->
+      <div class="data-column old-data">
+        <div class="column-header">
+          <span class="header-dot orange-dot"></span>
+          <h4>Dữ liệu cũ</h4>
+        </div>
+        <div class="detail-list">
+          <div class="detail-item">
+            <span class="label">Mã cấu phần</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : item.componentCode }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Tên cấu phần</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : item.componentName }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Tên kết nối</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : (item.connectionMethod || '-') }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Chuẩn tin điện</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : (item.messageType || '-') }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Kiểm tra Token/ký số</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : (item.checkToken ? 'Có' : 'Không') }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Ngày hiệu lực</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : (item.effectiveDate | dateFormat) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Ngày hết hiệu lực</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : (item.endEffectiveDate | dateFormat) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Trạng thái hoạt động</span>
+            <span class="value">{{ isFirstTimeCreate ? '-' : (item.isActive | activeLabel) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột phải: Dữ liệu mới -->
+      <div class="data-column new-data">
+        <div class="column-header">
+          <span class="header-dot green-dot"></span>
+          <h4>Dữ liệu mới</h4>
+        </div>
+        <div class="detail-list">
+          <div class="detail-item">
+            <span class="label">Mã cấu phần</span>
+            <span class="value" [class.text-changed]="isFieldChanged('componentCode')">
+              {{ newDataParsed?.componentCode ?? item.componentCode }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Tên cấu phần</span>
+            <span class="value" [class.text-changed]="isFieldChanged('componentName')">
+              {{ newDataParsed?.componentName ?? item.componentName }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Tên kết nối</span>
+            <span class="value" [class.text-changed]="isFieldChanged('connectionMethod')">
+              {{ (newDataParsed?.connectionMethod !== undefined ? newDataParsed?.connectionMethod : item.connectionMethod) || '-' }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Chuẩn tin điện</span>
+            <span class="value" [class.text-changed]="isFieldChanged('messageType')">
+              {{ (newDataParsed?.messageType !== undefined ? newDataParsed?.messageType : item.messageType) || '-' }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Kiểm tra Token/ký số</span>
+            <span class="value" [class.text-changed]="isFieldChanged('checkToken')">
+              {{ (newDataParsed?.checkToken !== undefined ? newDataParsed?.checkToken : item.checkToken) ? 'Có' : 'Không' }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Ngày hiệu lực</span>
+            <span class="value" [class.text-changed]="isFieldChanged('effectiveDate')">
+              {{ (newDataParsed?.effectiveDate ?? item.effectiveDate) | dateFormat }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Ngày hết hiệu lực</span>
+            <span class="value" [class.text-changed]="isFieldChanged('endEffectiveDate')">
+              {{ (newDataParsed?.endEffectiveDate !== undefined ? newDataParsed?.endEffectiveDate : item.endEffectiveDate) | dateFormat }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Trạng thái hoạt động</span>
+            <span class="value" [class.text-changed]="isFieldChanged('isActive')">
+              {{ (newDataParsed?.isActive !== undefined ? newDataParsed?.isActive : item.isActive) | activeLabel }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <div class="footer-actions">
+      <button
+        tuiButton
+        type="button"
+        appearance="outline"
+        size="m"
+        (click)="toggleAuditLogs()"
+      >
+        Lịch sử thao tác
+      </button>
+
+      <!-- Xóa: chỉ hiển thị khi IS_DISPLAY = 1 và STATUS = 1 hoặc 5 -->
+      <button
+        *ngIf="canDelete"
+        tuiButton
+        type="button"
+        appearance="outline-destructive"
+        size="m"
+        (click)="deleteItem()"
+        [disabled]="loading"
+      >
+        Xóa
+      </button>
+
+      <!-- STATUS = 1 (Tạo mới) -->
+      <ng-container *ngIf="item.status === ApprovalStatus.NEW">
+        <button
+          *appHasPermission="'COMPONENT_SEND'"
+          tuiButton
+          type="button"
+          appearance="primary"
+          size="m"
+          (click)="sendApprove()"
+          [disabled]="loading"
+        >
+          Gửi duyệt
+        </button>
+      </ng-container>
+
+      <!-- STATUS = 3 (Chờ duyệt) -->
+      <ng-container *ngIf="item.status === ApprovalStatus.PENDING">
+        <button
+          *appHasPermission="'COMPONENT_CANCEL'"
+          tuiButton
+          type="button"
+          appearance="outline-destructive"
+          size="m"
+          (click)="cancel()"
+          [disabled]="loading"
+        >
+          Hủy phê duyệt
+        </button>
+        <button
+          *appHasPermission="'COMPONENT_REJECT'"
+          tuiButton
+          type="button"
+          appearance="primary-destructive"
+          size="m"
+          (click)="reject()"
+          [disabled]="loading"
+        >
+          Từ chối
+        </button>
+        <button
+          *appHasPermission="'COMPONENT_APPROVE'"
+          tuiButton
+          type="button"
+          appearance="primary"
+          size="m"
+          (click)="approve()"
+          [disabled]="loading"
+        >
+          Phê duyệt
+        </button>
+      </ng-container>
+
+      <!-- STATUS = 4 (Đã duyệt) -->
+      <ng-container *ngIf="item.status === ApprovalStatus.APPROVED">
+        <button
+          *appHasPermission="'COMPONENT_CANCEL'"
+          tuiButton
+          type="button"
+          appearance="outline-destructive"
+          size="m"
+          (click)="cancel()"
+          [disabled]="loading"
+        >
+          Hủy phê duyệt
+        </button>
+      </ng-container>
+
+      <!-- STATUS = 5 (Từ chối) & STATUS = 7 (Hủy duyệt) -->
+      <ng-container *ngIf="item.status === ApprovalStatus.REJECTED || item.status === ApprovalStatus.CANCELLED">
+        <button
+          *appHasPermission="'COMPONENT_SEND'"
+          tuiButton
+          type="button"
+          appearance="primary"
+          size="m"
+          (click)="sendApprove()"
+          [disabled]="loading"
+        >
+          Gửi duyệt lại
+        </button>
+      </ng-container>
+    </div>
+  </div>
+</div>

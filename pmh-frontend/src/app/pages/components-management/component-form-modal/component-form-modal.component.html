@@ -1,0 +1,206 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <div class="header-left">
+      <div class="modal-breadcrumb">
+        <span>Tham số</span>
+        <span class="sep">&gt;</span>
+        <span>Cấu phần xử lý</span>
+        <span class="sep">&gt;</span>
+        <span class="active">{{ breadcrumbAction }}</span>
+      </div>
+      <div class="modal-title-row">
+        <button type="button" class="btn-back" (click)="close()" title="Quay lại">
+          <i class="lucide lucide-chevron-left"></i>
+        </button>
+        <h3 class="modal-title">{{ title }}</h3>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button
+        tuiButton
+        appearance="outline"
+        size="s"
+        type="button"
+        (click)="save(false)"
+        [disabled]="loading"
+      >
+        <i class="lucide lucide-save"></i>
+        <span>Lưu</span>
+      </button>
+      <button
+        tuiButton
+        appearance="primary"
+        size="s"
+        type="button"
+        (click)="save(true)"
+        [disabled]="loading"
+      >
+        <i class="lucide lucide-send"></i>
+        <span>Lưu và gửi duyệt</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="modal-body">
+    <div *ngIf="errorMessage" class="error-alert">
+      <i class="lucide lucide-circle-alert"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <form [formGroup]="form" class="form-grid-3">
+      <!-- Row 1: Mã cấu phần | Tên cấu phần | Chuẩn tin điện -->
+      <div class="form-group">
+        <label class="field-label">Mã cấu phần <span class="required">*</span></label>
+        <tui-textfield
+          tuiTextfieldSize="m"
+          [tuiTextfieldCleaner]="!isEdit"
+          [class.field-invalid]="form.get('componentCode')?.touched && form.get('componentCode')?.invalid"
+        >
+          <input
+            tuiInput
+            formControlName="componentCode"
+            [placeholder]="isEdit ? '' : 'Nhập nội dung'"
+            maxlength="20"
+            (input)="onComponentCodeInput($event)"
+          />
+        </tui-textfield>
+        <div *ngIf="form.get('componentCode')?.touched && form.get('componentCode')?.errors as errs" class="field-error">
+          <span *ngIf="errs['required']">Mã cấu phần không được để trống</span>
+          <span *ngIf="!errs['required'] && errs['invalidCode']">Chỉ cho phép chữ HOA (A-Z), chữ số (0-9), không chứa khoảng trắng/ký tự đặc biệt</span>
+          <span *ngIf="!errs['required'] && !errs['invalidCode'] && errs['maxlength']">Mã cấu phần tối đa 20 ký tự</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Tên cấu phần <span class="required">*</span></label>
+        <tui-textfield
+          tuiTextfieldSize="m"
+          [tuiTextfieldCleaner]="true"
+          [class.field-invalid]="form.get('componentName')?.touched && form.get('componentName')?.invalid"
+        >
+          <input
+            tuiInput
+            formControlName="componentName"
+            placeholder="Nhập nội dung"
+            maxlength="150"
+          />
+        </tui-textfield>
+        <div *ngIf="form.get('componentName')?.touched && form.get('componentName')?.errors as errs" class="field-error">
+          <span *ngIf="errs['required']">Tên cấu phần không được để trống</span>
+          <span *ngIf="!errs['required'] && errs['specialChars']">Không cho phép nhập ký tự đặc biệt (^, #, |, *, &#64;, $, ~, !, %, &amp;, ..., dấu phẩy)</span>
+          <span *ngIf="!errs['required'] && !errs['specialChars'] && errs['maxlength']">Tên cấu phần tối đa 150 ký tự</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Chuẩn tin điện</label>
+        <tui-textfield
+          multi
+          tuiChevron
+          tuiTextfieldSize="m"
+          [tuiTextfieldCleaner]="true"
+        >
+          <input
+            tuiInputChip
+            formControlName="messageTypes"
+            placeholder="Chọn giá trị"
+          />
+          <tui-input-chip *tuiItem />
+          <tui-data-list *tuiDropdown>
+            <tui-opt-group tuiMultiSelectGroup label="Chọn chuẩn tin điện">
+              <button
+                *ngFor="let type of messageTypes | tuiFilterByInput"
+                tuiOption
+                type="button"
+                [value]="type"
+              >
+                {{ type }}
+              </button>
+            </tui-opt-group>
+          </tui-data-list>
+        </tui-textfield>
+      </div>
+
+      <!-- Row 2: Tên kết nối | Ngày hiệu lực | Ngày hết hiệu lực -->
+      <div class="form-group">
+        <label class="field-label">Tên kết nối</label>
+        <tui-textfield
+          multi
+          tuiChevron
+          tuiTextfieldSize="m"
+          [tuiTextfieldCleaner]="true"
+        >
+          <input
+            tuiInputChip
+            formControlName="connectionMethods"
+            placeholder="Chọn giá trị"
+          />
+          <tui-input-chip *tuiItem />
+          <tui-data-list *tuiDropdown>
+            <tui-opt-group tuiMultiSelectGroup label="Chọn tên kết nối">
+              <button
+                *ngFor="let method of connectionMethods | tuiFilterByInput"
+                tuiOption
+                type="button"
+                [value]="method"
+              >
+                {{ method }}
+              </button>
+            </tui-opt-group>
+          </tui-data-list>
+        </tui-textfield>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Ngày hiệu lực <span class="required">*</span></label>
+        <tui-textfield
+          tuiTextfieldSize="m"
+          [tuiTextfieldCleaner]="true"
+          [class.field-invalid]="form.get('effectiveDate')?.touched && form.get('effectiveDate')?.invalid"
+        >
+          <input
+            tuiInputDate
+            formControlName="effectiveDate"
+            [min]="minDate"
+            placeholder="dd/mm/yyyy"
+          />
+          <tui-calendar *tuiDropdown />
+        </tui-textfield>
+        <div *ngIf="form.get('effectiveDate')?.touched && form.get('effectiveDate')?.errors as errs" class="field-error">
+          <span *ngIf="errs['required']">Ngày hiệu lực là bắt buộc</span>
+          <span *ngIf="!errs['required'] && errs['pastDate']">Ngày hiệu lực không hợp lệ (không được nhỏ hơn ngày hiện tại)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Ngày hết hiệu lực</label>
+        <tui-textfield
+          tuiTextfieldSize="m"
+          [tuiTextfieldCleaner]="true"
+          [class.field-invalid]="(form.get('endEffectiveDate')?.touched && form.get('endEffectiveDate')?.invalid) || (form.get('endEffectiveDate')?.touched && form.errors?.['endBeforeStart'])"
+        >
+          <input
+            tuiInputDate
+            formControlName="endEffectiveDate"
+            [min]="minDate"
+            placeholder="dd/mm/yyyy"
+          />
+          <tui-calendar *tuiDropdown />
+        </tui-textfield>
+        <div *ngIf="form.get('endEffectiveDate')?.touched" class="field-error">
+          <span *ngIf="form.get('endEffectiveDate')?.errors?.['pastDate']">Ngày hết hiệu lực không hợp lệ (không được chọn ngày quá khứ)</span>
+          <span *ngIf="!form.get('endEffectiveDate')?.errors?.['pastDate'] && form.errors?.['endBeforeStart']">Ngày hết hiệu lực phải lớn hơn hoặc bằng ngày hiệu lực</span>
+        </div>
+      </div>
+
+      <!-- Row 3: Kiểm tra Token/ký số -->
+      <div class="form-group col-span-3">
+        <label class="checkbox-label">
+          <input tuiCheckbox type="checkbox" formControlName="checkToken" size="m" />
+          <span>Kiểm tra Token/ký số</span>
+        </label>
+      </div>
+    </form>
+  </div>
+</div>

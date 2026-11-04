@@ -1,0 +1,42 @@
+<div class="confirm-dialog-container">
+  <h3 class="dialog-title">{{ options.title }}</h3>
+
+  <p *ngIf="options.message" class="dialog-message">{{ options.message }}</p>
+
+  <div *ngIf="options.showReasonInput" class="reason-input-group">
+    <label class="input-label">Lý do từ chối <span class="required">*</span></label>
+    <tui-textfield tuiTextfieldSize="m">
+      <textarea
+        tuiTextarea
+        [(ngModel)]="reason"
+        [attr.maxlength]="maxLength"
+        placeholder="Nhập lý do từ chối..."
+        [min]="4"
+        [max]="6"
+      ></textarea>
+    </tui-textfield>
+    <div class="character-counter">{{ reason.length }}/{{ maxLength }}</div>
+  </div>
+
+  <div class="dialog-actions">
+    <button
+      tuiButton
+      type="button"
+      appearance="outline"
+      size="m"
+      (click)="onCancel()"
+    >
+      {{ options.cancelText || 'Hủy' }}
+    </button>
+    <button
+      tuiButton
+      type="button"
+      [appearance]="options.isDanger ? 'primary-destructive' : 'primary'"
+      size="m"
+      [disabled]="options.showReasonInput && !reason.trim()"
+      (click)="onConfirm()"
+    >
+      {{ options.confirmText || 'Xác nhận' }}
+    </button>
+  </div>
+</div>

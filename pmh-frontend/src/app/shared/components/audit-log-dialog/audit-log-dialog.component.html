@@ -1,0 +1,19 @@
+<div class="audit-log-wrapper">
+  <ng-container *ngIf="data.logs.length === 0; else hasLogs">
+    <div class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cccccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+      <p>Không có lịch sử thao tác nào cho bản ghi này.</p>
+    </div>
+  </ng-container>
+
+  <ng-template #hasLogs>
+    <div class="ag-theme-quartz ag-grid-wrapper">
+      <ag-grid-angular
+        [rowData]="data.logs"
+        [columnDefs]="columnDefs"
+        [gridOptions]="gridOptions"
+        style="width: 100%;">
+      </ag-grid-angular>
+    </div>
+  </ng-template>
+</div>

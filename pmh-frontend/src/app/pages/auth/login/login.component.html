@@ -1,0 +1,69 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="card-header">
+      <div class="brand-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0D6B5E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" x2="22" y1="10" y2="10" />
+        </svg>
+      </div>
+      <h2>PAYMENT HUB</h2>
+      <p class="subtitle">Đăng nhập hệ thống quản lý tham số</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div *ngIf="errorMessage" class="error-alert">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" x2="12" y1="8" y2="12" />
+          <line x1="12" x2="12.01" y1="16" y2="16" />
+        </svg>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <div class="form-group">
+        <label for="username">Tên đăng nhập <span class="required">*</span></label>
+        <tui-textfield tuiTextfieldSize="l" [tuiTextfieldCleaner]="true">
+          <input
+            tuiInput
+            id="username"
+            type="text"
+            formControlName="username"
+            placeholder="Nhập tên đăng nhập"
+          />
+        </tui-textfield>
+        <div *ngIf="loginForm.get('username')?.touched && loginForm.get('username')?.invalid" class="field-error">
+          Tên đăng nhập không được để trống
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Mật khẩu <span class="required">*</span></label>
+        <tui-textfield tuiTextfieldSize="l" [tuiTextfieldCleaner]="true">
+          <input
+            tuiInput
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="Nhập mật khẩu"
+          />
+        </tui-textfield>
+        <div *ngIf="loginForm.get('password')?.touched && loginForm.get('password')?.invalid" class="field-error">
+          Mật khẩu không được để trống
+        </div>
+      </div>
+
+      <button
+        tuiButton
+        type="submit"
+        appearance="primary"
+        size="l"
+        class="btn-submit"
+        [disabled]="loading"
+      >
+        <span *ngIf="!loading">Đăng nhập</span>
+        <span *ngIf="loading">Đang xử lý...</span>
+      </button>
+    </form>
+  </div>
+</div>
