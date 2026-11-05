@@ -1,5 +1,5 @@
 services:
-  # 1. Apache Kafka (KRaft Mode - Không cần ZooKeeper)
+  # 1. Apache Kafka (KRaft Mode - Tối ưu tài nguyên CPU & RAM cho môi trường local)
   pmh-kafka:
     image: apache/kafka:latest
     container_name: pmh-kafka
@@ -20,6 +20,16 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Giới hạn Heap memory JVM tránh chiếm RAM máy host
+      KAFKA_HEAP_OPTS: "-Xmx384m -Xms128m"
+      KAFKA_JVM_PERFORMANCE_OPTS: "-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35"
+      KAFKA_LOG_CLEANER_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 24
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     volumes:
       - pmh_kafka_data:/var/lib/kafka/data
     healthcheck:
@@ -32,14 +42,19 @@ services:
       - pmh-network
     restart: unless-stopped
 
-  # 2. Redis (Cache & Pub/Sub cho thông báo hoàn tất Export)
+  # 2. Redis (Cache & Pub/Sub - Tắt disk I/O không cần thiết, giới hạn 128MB RAM)
   pmh-redis:
     image: redis:7-alpine
     container_name: pmh-redis
     hostname: pmh-redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly no --save "" --maxmemory 128mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 192M
     volumes:
       - pmh_redis_data:/data
     healthcheck:
@@ -51,7 +66,7 @@ services:
       - pmh-network
     restart: unless-stopped
 
-  # 3. MinIO (Object Storage tương thích S3 lưu trữ file Excel)
+  # 3. MinIO (Object Storage - Giới hạn CPU & RAM nhẹ nhàng)
   pmh-minio:
     image: elestio/minio:latest
     container_name: pmh-minio
@@ -63,6 +78,11 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 384M
     volumes:
       - pmh_minio_data:/data
     healthcheck:

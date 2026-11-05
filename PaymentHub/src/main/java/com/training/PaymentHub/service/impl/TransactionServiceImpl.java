@@ -111,7 +111,7 @@ public class TransactionServiceImpl implements TransactionService {
     public List<ExportJobResponse> getMyExportJobs(String userId) {
         return exportJobRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .limit(20)
+                .limit(100)
                 .map(this::toExportJobResponse)
                 .collect(Collectors.toList());
     }
@@ -185,7 +185,16 @@ public class TransactionServiceImpl implements TransactionService {
 
     private ExportJobResponse toExportJobResponse(ExportJob job) {
         boolean expired = isExpired(job);
-        boolean isSuccess = ExportJobStatus.SUCCESS.equalsIgnoreCase(job.getStatus());
+        String status = job.getStatus();
+
+        // Xử lý các job mồ côi cũ bị kẹt PENDING/PROCESSING từ các phiên chạy trước (quá 30 phút)
+        if ((ExportJobStatus.PENDING.equalsIgnoreCase(status) || ExportJobStatus.PROCESSING.equalsIgnoreCase(status))
+                && job.getCreatedAt() != null
+                && Duration.between(job.getCreatedAt(), LocalDateTime.now()).toMinutes() > 30) {
+            status = ExportJobStatus.FAILED;
+        }
+
+        boolean isSuccess = ExportJobStatus.SUCCESS.equalsIgnoreCase(status);
         boolean fileAvailable = isSuccess && !expired && minioStorageService.fileExists(job.getJobId());
         boolean effectivelyExpired = expired || (isSuccess && !fileAvailable);
         String downloadUrl = fileAvailable ? "/api/transactions/export/" + job.getJobId() + "/download" : null;
@@ -194,12 +203,14 @@ public class TransactionServiceImpl implements TransactionService {
                 .id(job.getId())
                 .jobId(job.getJobId())
                 .userId(job.getUserId())
-                .status(job.getStatus())
+                .status(status)
                 .progress(job.getProgress())
                 .fileUrl(job.getFileUrl())
                 .downloadUrl(downloadUrl)
                 .totalRecords(job.getTotalRecords())
-                .errorMessage(job.getErrorMessage())
+                .errorMessage(ExportJobStatus.FAILED.equalsIgnoreCase(status) && job.getErrorMessage() == null
+                        ? "Tiến trình bị gián đoạn do hệ thống khởi động lại"
+                        : job.getErrorMessage())
                 .createdAt(job.getCreatedAt())
                 .updatedAt(job.getUpdatedAt())
                 .expired(effectivelyExpired)
