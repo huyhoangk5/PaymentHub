@@ -10,6 +10,7 @@ import com.training.PaymentHub.repository.ExportJobRepository;
 import com.training.PaymentHub.service.MinioStorageService;
 import com.training.PaymentHub.service.RedisProgressService;
 import com.training.PaymentHub.specification.TransactionLogSpec;
+import com.training.PaymentHub.util.TransactionFilterUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -83,6 +84,7 @@ public class ExportJobConsumerWorker {
         final TransactionSearchRequest filter = message.getFilter() != null
                 ? message.getFilter()
                 : redisProgressService.getJobFilter(currentJobId);
+        final String filterSummary = TransactionFilterUtils.buildFilterSummary(filter);
 
         log.info("Worker nhận Export Job: jobId={}, userId={}, partition={}, offset={}",
                 currentJobId, userId, record.partition(), record.offset());
@@ -102,12 +104,13 @@ public class ExportJobConsumerWorker {
             return;
         }
 
-        // 2. Phát thông báo bắt đầu PROCESSING (1 lần duy nhất khi bắt đầu, FE tự chạy thanh % giả lập 0->99%)
+        // 2. Phát thông báo bắt đầu PROCESSING
         redisProgressService.publishNotification(ExportNotificationEvent.builder()
                 .jobId(currentJobId)
                 .userId(userId)
                 .status(ExportJobStatus.PROCESSING)
                 .progress(10)
+                .filterSummary(filterSummary)
                 .updatedAt(LocalDateTime.now())
                 .build());
 
@@ -121,6 +124,8 @@ public class ExportJobConsumerWorker {
             workbook = new SXSSFWorkbook(SXSSF_WINDOW_SIZE);
             workbook.setCompressTempFiles(true);
 
+            CellStyle titleStyle = createTitleStyle(workbook);
+            CellStyle filterLabelStyle = createFilterLabelStyle(workbook);
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle amountStyle = createAmountStyle(workbook);
 
@@ -131,8 +136,11 @@ public class ExportJobConsumerWorker {
             final AtomicInteger sheetIndex = new AtomicInteger(1);
             final AtomicInteger currentSheetRowIdx = new AtomicInteger(0);
             final AtomicLong totalProcessed = new AtomicLong(0);
-            final Sheet[] activeSheet = new Sheet[]{createSheetWithHeader(wbRef, sheetIndex.get(), headerStyle)};
-            currentSheetRowIdx.set(1);
+            final AtomicInteger dataStartRowRef = new AtomicInteger(0);
+            final Sheet[] activeSheet = new Sheet[]{
+                    createSheetWithHeader(wbRef, sheetIndex.get(), headerStyle, titleStyle, filterLabelStyle, filter, dataStartRowRef)
+            };
+            currentSheetRowIdx.set(dataStartRowRef.get());
 
             jdbcTemplate.query(con -> {
                 PreparedStatement ps = con.prepareStatement(
@@ -147,10 +155,10 @@ public class ExportJobConsumerWorker {
                 }
                 return ps;
             }, (ResultSet rs) -> {
-                if (currentSheetRowIdx.get() > MAX_ROWS_PER_SHEET) {
+                if (currentSheetRowIdx.get() >= dataStartRowRef.get() + MAX_ROWS_PER_SHEET) {
                     int nextSheetNo = sheetIndex.incrementAndGet();
-                    activeSheet[0] = createSheetWithHeader(wbRef, nextSheetNo, headerStyle);
-                    currentSheetRowIdx.set(1);
+                    activeSheet[0] = createSheetWithHeader(wbRef, nextSheetNo, headerStyle, titleStyle, filterLabelStyle, filter, dataStartRowRef);
+                    currentSheetRowIdx.set(dataStartRowRef.get());
                 }
 
                 long stt = totalProcessed.incrementAndGet();
@@ -196,7 +204,7 @@ public class ExportJobConsumerWorker {
             // 5. Cập nhật trạng thái SUCCESS vào Database trước khi thông báo cho Frontend
             updateJobSuccessInDbWithRetry(currentJobId, fileUrl, totalRecords);
 
-            // 6. Phát sự kiện hoàn tất (100%) qua Redis Pub/Sub -> WebSocket đẩy về Frontend
+            // 6. Phát sự kiện hoàn tất qua Redis Pub/Sub -> WebSocket đẩy về Frontend
             String downloadUrl = "/api/transactions/export/" + currentJobId + "/download";
             redisProgressService.publishNotification(ExportNotificationEvent.builder()
                     .jobId(currentJobId)
@@ -206,6 +214,7 @@ public class ExportJobConsumerWorker {
                     .fileUrl(fileUrl)
                     .downloadUrl(downloadUrl)
                     .totalRecords(totalRecords)
+                    .filterSummary(filterSummary)
                     .updatedAt(LocalDateTime.now())
                     .build());
 
@@ -244,21 +253,88 @@ public class ExportJobConsumerWorker {
         }
     }
 
-    private Sheet createSheetWithHeader(SXSSFWorkbook workbook, int sheetNumber, CellStyle headerStyle) {
+    private Sheet createSheetWithHeader(
+            SXSSFWorkbook workbook,
+            int sheetNumber,
+            CellStyle headerStyle,
+            CellStyle titleStyle,
+            CellStyle filterLabelStyle,
+            TransactionSearchRequest filter,
+            AtomicInteger dataStartRowRef
+    ) {
         String sheetName = sheetNumber == 1 ? "Lich_su_giao_dich" : "Lich_su_giao_dich_" + sheetNumber;
         SXSSFSheet sheet = workbook.createSheet(sheetName);
-        int[] widths = {10, 24, 18, 20, 14, 22, 30, 22, 22};
+        int[] widths = {10, 24, 18, 20, 18, 22, 30, 22, 22};
         for (int i = 0; i < widths.length; i++) {
             sheet.setColumnWidth(i, widths[i] * 256);
         }
 
-        Row headerRow = sheet.createRow(0);
+        int rowIdx = 0;
+
+        // Dòng tiêu đề báo cáo
+        Row titleRow = sheet.createRow(rowIdx++);
+        Cell titleCell = titleRow.createCell(0);
+        titleCell.setCellValue("BÁO CÁO LỊCH SỬ GIAO DỊCH");
+        titleCell.setCellStyle(titleStyle);
+
+        // Dòng thời gian xuất
+        Row timeRow = sheet.createRow(rowIdx++);
+        timeRow.createCell(0).setCellValue("Thời gian xuất:");
+        timeRow.getCell(0).setCellStyle(filterLabelStyle);
+        timeRow.createCell(1).setCellValue(LocalDateTime.now().format(DATE_TIME_FMT));
+
+        // Thông tin các trường tham gia lọc dữ liệu
+        var filterEntries = TransactionFilterUtils.extractFilterEntries(filter);
+        if (filterEntries.isEmpty()) {
+            Row filterRow = sheet.createRow(rowIdx++);
+            Cell labelCell = filterRow.createCell(0);
+            labelCell.setCellValue("Bộ lọc áp dụng:");
+            labelCell.setCellStyle(filterLabelStyle);
+            filterRow.createCell(1).setCellValue("Tất cả dữ liệu (Không áp dụng bộ lọc)");
+        } else {
+            Row filterHeaderRow = sheet.createRow(rowIdx++);
+            Cell labelCell = filterHeaderRow.createCell(0);
+            labelCell.setCellValue("Bộ lọc áp dụng:");
+            labelCell.setCellStyle(filterLabelStyle);
+
+            for (TransactionFilterUtils.FilterEntry entry : filterEntries) {
+                Row fRow = sheet.createRow(rowIdx++);
+                Cell fieldCell = fRow.createCell(0);
+                fieldCell.setCellValue("• " + entry.label() + ":");
+                fieldCell.setCellStyle(filterLabelStyle);
+                fRow.createCell(1).setCellValue(entry.value());
+            }
+        }
+
+        // 1 dòng trống phân cách trước bảng dữ liệu
+        rowIdx++;
+
+        Row headerRow = sheet.createRow(rowIdx++);
         for (int i = 0; i < HEADERS.length; i++) {
             Cell cell = headerRow.createCell(i);
             cell.setCellValue(HEADERS[i]);
             cell.setCellStyle(headerStyle);
         }
+
+        dataStartRowRef.set(rowIdx);
         return sheet;
+    }
+
+    private CellStyle createTitleStyle(SXSSFWorkbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 13);
+        style.setFont(font);
+        return style;
+    }
+
+    private CellStyle createFilterLabelStyle(SXSSFWorkbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        return style;
     }
 
     private CellStyle createHeaderStyle(SXSSFWorkbook workbook) {

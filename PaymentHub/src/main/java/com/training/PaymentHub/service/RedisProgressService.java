@@ -8,6 +8,7 @@ public interface RedisProgressService {
     ExportNotificationEvent getJobState(String jobId);
     void saveJobFilter(String jobId, TransactionSearchRequest filter);
     TransactionSearchRequest getJobFilter(String jobId);
+    TransactionSearchRequest getJobFilterIfPresent(String jobId);
     void publishNotification(ExportNotificationEvent event);
 }
 

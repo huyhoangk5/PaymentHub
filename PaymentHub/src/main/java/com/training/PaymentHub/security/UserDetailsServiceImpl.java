@@ -8,14 +8,16 @@ import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final UserPermissionResolver userPermissionResolver;
 
     @Override
     @Transactional(readOnly = true)
@@ -23,17 +25,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepository.findByUsernameWithRolesAndPermissions(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user: " + username));
 
-        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
-
-        // 1. Thêm Roles
-        user.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getRoleCode())));
-
-        // 2. Thêm Permissions
-        user.getRoles().forEach(role -> 
-            role.getPermissions().forEach(permission -> 
-                authorities.add(new SimpleGrantedAuthority(permission.getCode()))
-            )
-        );
+        List<String> resolved = userPermissionResolver.resolveAuthorities(user);
+        Set<SimpleGrantedAuthority> authorities = resolved.stream()
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toSet());
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),

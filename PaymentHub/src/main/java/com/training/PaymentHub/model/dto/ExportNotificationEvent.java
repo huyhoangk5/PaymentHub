@@ -19,5 +19,6 @@ public class ExportNotificationEvent {
     private Long totalRecords;
     private String errorMessage;
     private LocalDateTime updatedAt;
+    private String filterSummary;
 }
 

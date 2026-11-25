@@ -12,6 +12,7 @@ import com.training.PaymentHub.model.entity.User;
 import com.training.PaymentHub.repository.RoleRepository;
 import com.training.PaymentHub.repository.UserRepository;
 import com.training.PaymentHub.security.JwtTokenProvider;
+import com.training.PaymentHub.security.UserPermissionResolver;
 import com.training.PaymentHub.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserPermissionResolver userPermissionResolver;
 
     // Cache đếm số lần đăng nhập sai ngay trong RAM (Tự xóa key sau 5 phút không hoạt động)
     private final Cache<String, Integer> failedAttemptsCache = Caffeine.newBuilder()
@@ -114,14 +116,8 @@ public class AuthServiceImpl implements AuthService {
             user.setLockoutUntil(null);
         }
 
-        // Gom toàn bộ Permission Code từ tất cả Roles
-        List<String> permissions = user.getRoles().stream()
-                .flatMap(role -> role.getPermissions().stream())
-                .map(permission -> permission.getCode())
-                .distinct()
-                .collect(Collectors.toList());
-        user.getRoles().forEach(role -> permissions.add(role.getRoleCode()));
-        enrichGroupCategoryPermissions(permissions);
+        // Gom toàn bộ Permission thực tế (Roles + User overrides GRANT/REVOKE)
+        List<String> permissions = userPermissionResolver.resolveAuthorities(user);
 
         String accessToken = tokenProvider.generateAccessToken(user.getUsername(), permissions);
         String refreshToken = tokenProvider.generateRefreshToken(user.getUsername());
@@ -148,13 +144,7 @@ public class AuthServiceImpl implements AuthService {
             User user = userRepository.findByUsernameWithRolesAndPermissions(username)
                     .orElseThrow(() -> new UsernameNotFoundException("Tài khoản không tồn tại"));
 
-            List<String> permissions = user.getRoles().stream()
-                    .flatMap(role -> role.getPermissions().stream())
-                    .map(permission -> permission.getCode())
-                    .distinct()
-                    .collect(Collectors.toList());
-            user.getRoles().forEach(role -> permissions.add(role.getRoleCode()));
-            enrichGroupCategoryPermissions(permissions);
+            List<String> permissions = userPermissionResolver.resolveAuthorities(user);
 
             String newAccessToken = tokenProvider.generateAccessToken(username, permissions);
 

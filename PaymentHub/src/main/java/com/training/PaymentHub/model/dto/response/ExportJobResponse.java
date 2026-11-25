@@ -22,5 +22,6 @@ public class ExportJobResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean expired;
+    private String filterSummary;
 }
 

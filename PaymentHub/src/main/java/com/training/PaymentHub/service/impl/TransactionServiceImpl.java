@@ -15,6 +15,7 @@ import com.training.PaymentHub.service.MinioStorageService;
 import com.training.PaymentHub.service.RedisProgressService;
 import com.training.PaymentHub.service.TransactionService;
 import com.training.PaymentHub.specification.TransactionLogSpec;
+import com.training.PaymentHub.util.TransactionFilterUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,12 +87,14 @@ public class TransactionServiceImpl implements TransactionService {
         job = exportJobRepository.saveAndFlush(job);
 
         // 2. Lưu bộ lọc & trạng thái khởi tạo vào Redis (TTL 24h)
+        String filterSummary = TransactionFilterUtils.buildFilterSummary(req);
         redisProgressService.saveJobFilter(jobId, req);
         redisProgressService.saveJobState(ExportNotificationEvent.builder()
                 .jobId(jobId)
                 .userId(userId)
                 .status(ExportJobStatus.PENDING)
                 .progress(0)
+                .filterSummary(filterSummary)
                 .updatedAt(now)
                 .build());
 
@@ -103,7 +106,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .build();
         exportJobProducer.sendExportJob(kafkaMessage);
 
-        return toExportJobResponse(job);
+        return toExportJobResponse(job, filterSummary);
     }
 
     @Override
@@ -184,6 +187,12 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private ExportJobResponse toExportJobResponse(ExportJob job) {
+        TransactionSearchRequest savedFilter = redisProgressService.getJobFilterIfPresent(job.getJobId());
+        String filterSummary = savedFilter != null ? TransactionFilterUtils.buildFilterSummary(savedFilter) : null;
+        return toExportJobResponse(job, filterSummary);
+    }
+
+    private ExportJobResponse toExportJobResponse(ExportJob job, String filterSummary) {
         boolean expired = isExpired(job);
         String status = job.getStatus();
 
@@ -214,6 +223,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .createdAt(job.getCreatedAt())
                 .updatedAt(job.getUpdatedAt())
                 .expired(effectivelyExpired)
+                .filterSummary(filterSummary)
                 .build();
     }
 }

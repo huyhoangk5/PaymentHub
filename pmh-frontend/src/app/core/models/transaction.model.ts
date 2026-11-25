@@ -37,6 +37,7 @@ export interface ExportJobResponse {
   createdAt?: string;
   updatedAt?: string;
   expired?: boolean;
+  filterSummary?: string | null;
 }
 
 export interface ExportNotificationEvent {
@@ -49,5 +50,6 @@ export interface ExportNotificationEvent {
   totalRecords?: number | null;
   errorMessage?: string | null;
   updatedAt?: string;
+  filterSummary?: string | null;
 }
 

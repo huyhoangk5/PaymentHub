@@ -1,0 +1,71 @@
+<div class="page-container">
+  <div class="breadcrumb">
+    <span class="crumb-home">Hệ thống</span>
+    <span class="crumb-separator">/</span>
+    <span class="crumb-current">Quản lý phân quyền</span>
+  </div>
+
+  <div class="page-header">
+    <h2 class="page-title">Quản lý phân quyền tài khoản</h2>
+  </div>
+
+  <div class="filter-card">
+    <form [formGroup]="filterForm" (ngSubmit)="onSearch()" class="filter-form">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label for="keyword">Tìm kiếm tài khoản</label>
+          <tui-textfield tuiTextfieldSize="m" [tuiTextfieldCleaner]="true">
+            <input
+              tuiInput
+              id="keyword"
+              type="text"
+              formControlName="keyword"
+              placeholder="Nhập tên đăng nhập, họ tên hoặc email..."
+            />
+          </tui-textfield>
+        </div>
+
+        <div class="filter-actions">
+          <button tuiButton type="button" appearance="flat" size="m" (click)="onReset()">
+            Xóa bộ lọc
+          </button>
+          <button tuiButton type="submit" appearance="primary" size="m">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            Tìm kiếm
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="title-with-count">
+        <h3>Danh sách tài khoản</h3>
+        <span class="count-badge">{{ totalElements }}</span>
+      </div>
+    </div>
+
+    <div class="ag-theme-quartz ag-grid-wrapper">
+      <ag-grid-angular
+        [rowData]="users"
+        [columnDefs]="columnDefs"
+        [gridOptions]="gridOptions"
+        (gridReady)="onGridReady($event)"
+        style="width: 100%;"
+      />
+      <div *ngIf="loading" class="loading-overlay">Đang tải dữ liệu...</div>
+    </div>
+
+    <div class="pagination-bar" *ngIf="totalPages > 1">
+      <div class="pagination-info">
+        Hiển thị {{ page * size + 1 }} - {{ (page + 1) * size > totalElements ? totalElements : (page + 1) * size }} trên tổng số {{ totalElements }} bản ghi
+      </div>
+      <tui-pagination
+        [length]="totalPages"
+        [index]="page"
+        (indexChange)="onPageChange($event)"
+      />
+    </div>
+  </div>
+</div>

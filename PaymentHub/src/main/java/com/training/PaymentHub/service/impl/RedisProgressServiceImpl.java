@@ -66,6 +66,12 @@ public class RedisProgressServiceImpl implements RedisProgressService {
 
     @Override
     public TransactionSearchRequest getJobFilter(String jobId) {
+        TransactionSearchRequest filter = getJobFilterIfPresent(jobId);
+        return filter != null ? filter : new TransactionSearchRequest();
+    }
+
+    @Override
+    public TransactionSearchRequest getJobFilterIfPresent(String jobId) {
         try {
             String json = redisTemplate.opsForValue().get(JOB_FILTER_PREFIX + jobId);
             if (json != null) {
@@ -74,7 +80,7 @@ public class RedisProgressServiceImpl implements RedisProgressService {
         } catch (Exception e) {
             log.warn("Không thể đọc bộ lọc Job {} từ Redis: {}", jobId, e.getMessage());
         }
-        return new TransactionSearchRequest();
+        return null;
     }
 
     @Override

@@ -38,6 +38,13 @@ export const routes: Routes = [
           )
       },
       {
+        path: 'permissions-management',
+        loadComponent: () =>
+          import('./pages/permission-management/permission-list/permission-list.component').then(
+            (m) => m.PermissionListComponent
+          )
+      },
+      {
         path: '',
         redirectTo: 'components',
         pathMatch: 'full'

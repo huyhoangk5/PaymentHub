@@ -36,4 +36,9 @@ export const API = {
     JOB_DETAIL: (jobId: string) => `/api/transactions/export/${jobId}`,
     DOWNLOAD: (jobId: string) => `/api/transactions/export/${jobId}/download`,
   },
+  PERMISSIONS_MANAGEMENT: {
+    USERS: '/api/permissions-management/users',
+    CATALOG: '/api/permissions-management/catalog',
+    UPDATE_USER: (userId: number) => `/api/permissions-management/users/${userId}`,
+  },
 } as const;

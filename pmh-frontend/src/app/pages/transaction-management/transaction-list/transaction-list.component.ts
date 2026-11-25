@@ -78,13 +78,6 @@ export class TransactionListComponent implements OnInit, OnDestroy {
    */
   exportJobs: ExportJobResponse[] = [];
   showExportPanel = true;
-
-  /**
-   * Lưu phần trăm hiển thị giả lập (0 -> 10 -> 20 ... -> 99%) cho các Job đang PENDING / PROCESSING
-   * để không phải spam request từ Backend sang Frontend.
-   */
-  simulatedProgressMap: Record<string, number> = {};
-  private progressTimer: any = null;
   private wsSub?: Subscription;
 
   statusOptions = [
@@ -211,15 +204,11 @@ export class TransactionListComponent implements OnInit, OnDestroy {
     this.loadData();
     this.loadMyExportJobs();
     this.initWebSocket();
-    this.startSimulatedProgressTimer();
   }
 
   ngOnDestroy(): void {
     if (this.wsSub) {
       this.wsSub.unsubscribe();
-    }
-    if (this.progressTimer) {
-      clearInterval(this.progressTimer);
     }
   }
 
@@ -234,46 +223,6 @@ export class TransactionListComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Chạy thanh tiến độ giả lập mượt mà (0% -> 10% -> 20% ... -> 99% rồi dừng chờ)
-   * cho tất cả các Job đang ở trạng thái PENDING / PROCESSING.
-   * Khi Backend báo SUCCESS qua WebSocket, tiến độ sẽ nhảy ngay lên 100%.
-   */
-  private startSimulatedProgressTimer(): void {
-    this.progressTimer = setInterval(() => {
-      let changed = false;
-      for (const job of this.exportJobs) {
-        if (job.status === 'PENDING' || job.status === 'PROCESSING') {
-          const current = this.simulatedProgressMap[job.jobId] ?? 0;
-          if (current < 99) {
-            let step = 4;
-            if (current < 30) step = 8;
-            else if (current < 60) step = 5;
-            else if (current < 85) step = 3;
-            else step = 1;
-
-            this.simulatedProgressMap[job.jobId] = Math.min(99, current + step);
-            changed = true;
-          }
-        } else if (job.status === 'SUCCESS') {
-          if (this.simulatedProgressMap[job.jobId] !== 100) {
-            this.simulatedProgressMap[job.jobId] = 100;
-            changed = true;
-          }
-        }
-      }
-      if (changed) {
-        this.cdr.markForCheck();
-      }
-    }, 1200);
-  }
-
-  getDisplayProgress(job: ExportJobResponse): number {
-    if (job.status === 'SUCCESS') return 100;
-    if (job.status === 'FAILED') return 0;
-    return this.simulatedProgressMap[job.jobId] ?? Math.max(job.progress || 0, 5);
-  }
-
   private handleRealtimeExportEvent(event: ExportNotificationEvent): void {
     const idx = this.exportJobs.findIndex((j) => j.jobId === event.jobId);
     if (idx >= 0) {
@@ -285,7 +234,8 @@ export class TransactionListComponent implements OnInit, OnDestroy {
         downloadUrl: event.downloadUrl ?? this.exportJobs[idx].downloadUrl,
         totalRecords: event.totalRecords ?? this.exportJobs[idx].totalRecords,
         errorMessage: event.errorMessage ?? this.exportJobs[idx].errorMessage,
-        updatedAt: event.updatedAt ?? this.exportJobs[idx].updatedAt
+        updatedAt: event.updatedAt ?? this.exportJobs[idx].updatedAt,
+        filterSummary: event.filterSummary ?? this.exportJobs[idx].filterSummary
       };
     } else {
       this.exportJobs.unshift({
@@ -297,12 +247,12 @@ export class TransactionListComponent implements OnInit, OnDestroy {
         downloadUrl: event.downloadUrl,
         totalRecords: event.totalRecords,
         errorMessage: event.errorMessage,
-        updatedAt: event.updatedAt
+        updatedAt: event.updatedAt,
+        filterSummary: event.filterSummary
       });
     }
 
     if (event.status === 'SUCCESS') {
-      this.simulatedProgressMap[event.jobId] = 100;
       this.alerts
         .open(
           `File Excel (${(event.totalRecords ?? 0).toLocaleString('vi-VN')} bản ghi) đã sẵn sàng tải xuống!`,
@@ -327,15 +277,6 @@ export class TransactionListComponent implements OnInit, OnDestroy {
       next: (res) => {
         if (res.data) {
           this.exportJobs = res.data;
-          for (const job of this.exportJobs) {
-            if (job.status === 'SUCCESS') {
-              this.simulatedProgressMap[job.jobId] = 100;
-            } else if (job.status === 'PENDING' || job.status === 'PROCESSING') {
-              if (this.simulatedProgressMap[job.jobId] === undefined) {
-                this.simulatedProgressMap[job.jobId] = 15;
-              }
-            }
-          }
           this.cdr.detectChanges();
         }
       }
@@ -424,7 +365,6 @@ export class TransactionListComponent implements OnInit, OnDestroy {
         this.exportRequesting = false;
         if (res.data) {
           const newJob = res.data;
-          this.simulatedProgressMap[newJob.jobId] = 5;
           this.exportJobs = [newJob, ...this.exportJobs.filter((j) => j.jobId !== newJob.jobId)];
           this.showExportPanel = true;
         }

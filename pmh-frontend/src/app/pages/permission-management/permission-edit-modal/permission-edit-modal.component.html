@@ -1,0 +1,113 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <div>
+      <h3 class="modal-title">Chỉnh sửa phân quyền tài khoản</h3>
+      <div class="user-subtitle">
+        <span class="username-badge">{{ user.username }}</span>
+        <span *ngIf="user.fullName" class="fullname-text">{{ user.fullName }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-body">
+    <!-- Roles Section -->
+    <div class="section-block">
+      <div class="section-title">Vai trò</div>
+      <div class="role-grid">
+        <label *ngFor="let role of roles" class="role-chip" [class.selected]="selectedRoleIds.has(role.id)">
+          <input
+            type="checkbox"
+            [checked]="selectedRoleIds.has(role.id)"
+            (change)="toggleRole(role, $any($event.target).checked)"
+          />
+          <span class="role-code">{{ role.roleCode }}</span>
+          <span class="role-name">{{ role.roleName }}</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Permissions Section -->
+    <div class="section-block">
+      <div class="perm-toolbar">
+        <div class="section-title-wrap">
+          <div class="section-title">
+            Quyền truy cập API ({{ selectedPermissionIds.size }}/{{ allPermissions.length }})
+          </div>
+          <div class="summary-stats">
+            <span class="summary-pill base">Gốc từ Role: {{ roleBaselineCount }}</span>
+            <span *ngIf="grantedCount > 0" class="summary-pill grant">+{{ grantedCount }} cấp thêm</span>
+            <span *ngIf="revokedCount > 0" class="summary-pill revoke">-{{ revokedCount }} thu hồi</span>
+          </div>
+        </div>
+
+        <div class="toolbar-actions">
+          <tui-textfield tuiTextfieldSize="s" class="search-box" [tuiTextfieldCleaner]="true">
+            <input
+              tuiInput
+              type="text"
+              [ngModel]="searchText"
+              (ngModelChange)="onSearchChange($event)"
+              placeholder="Tìm mã quyền, mô tả..."
+            />
+          </tui-textfield>
+          <button tuiButton type="button" appearance="outline" size="s" (click)="resetToRoleDefaults()">
+            Khôi phục theo Role
+          </button>
+        </div>
+      </div>
+
+      <div class="perm-groups">
+        <div *ngFor="let group of filteredGroups; trackBy: trackByGroup" class="perm-group-card">
+          <div class="group-header">
+            <label class="group-title-label">
+              <input
+                type="checkbox"
+                [checked]="isGroupAllSelected(group)"
+                (change)="toggleGroup(group, $any($event.target).checked)"
+              />
+              <span class="group-name">{{ group.module }}</span>
+              <span class="group-count">({{ group.permissions.length }})</span>
+            </label>
+          </div>
+
+          <div class="perm-grid">
+            <label
+              *ngFor="let perm of group.permissions; trackBy: trackByPerm"
+              class="perm-item"
+              [class.is-granted]="getPermissionStatus(perm) === 'GRANTED'"
+              [class.is-revoked]="getPermissionStatus(perm) === 'REVOKED'"
+              [class.is-selected]="selectedPermissionIds.has(perm.id)"
+            >
+              <input
+                type="checkbox"
+                [checked]="selectedPermissionIds.has(perm.id)"
+                (change)="togglePermission(perm.id, $any($event.target).checked)"
+              />
+              <div class="perm-info">
+                <div class="perm-code-row">
+                  <span class="perm-code">{{ perm.code }}</span>
+                  <span *ngIf="getPermissionStatus(perm) === 'GRANTED'" class="tag grant">+ Cấp thêm</span>
+                  <span *ngIf="getPermissionStatus(perm) === 'REVOKED'" class="tag revoke">- Thu hồi</span>
+                </div>
+                <div class="perm-name">{{ perm.name }}</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div *ngIf="filteredGroups.length === 0" class="empty-state">
+          Không tìm thấy quyền phù hợp với từ khóa "{{ searchText }}"
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button tuiButton type="button" appearance="outline" size="m" (click)="cancel()" [disabled]="saving">
+      Hủy bỏ
+    </button>
+    <button tuiButton type="button" appearance="primary" size="m" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Đang lưu...' : 'Lưu phân quyền' }}
+    </button>
+  </div>
+</div>

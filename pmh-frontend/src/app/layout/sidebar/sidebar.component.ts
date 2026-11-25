@@ -36,6 +36,11 @@ export class SidebarComponent {
       route: '/transactions',
       icon: 'lucide lucide-file-Spreadsheet',
       permission: 'TRANSACTION_EXPORT'
+    },
+    {
+      label: 'Quản lý phân quyền',
+      route: '/permissions-management',
+      icon: 'lucide lucide-shield-check'
     }
   ];
 }
